@@ -15,8 +15,14 @@ class Settings(BaseModel):
     PORT: int = int(os.getenv("OMNIFLOW_PORT", "8000"))
     API_BASE_URL: str = os.getenv("OMNIFLOW_API_BASE_URL", f"http://127.0.0.1:{PORT}")
 
+    # Vercel Serverless environment detection (read-only filesystem except /tmp)
+    IS_VERCEL: bool = os.getenv("VERCEL") == "1"
+
     # Database
-    DATABASE_URL: str = os.getenv("OMNIFLOW_DATABASE_URL", f"sqlite:///{BASE_DIR.as_posix()}/omniflow.db")
+    DATABASE_URL: str = os.getenv(
+        "OMNIFLOW_DATABASE_URL",
+        "sqlite:////tmp/omniflow.db" if os.getenv("VERCEL") == "1" else f"sqlite:///{BASE_DIR.as_posix()}/omniflow.db"
+    )
 
     # Gemini
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
@@ -32,9 +38,9 @@ class Settings(BaseModel):
     DEMO_MODE: bool = os.getenv("DEMO_MODE", "false").lower() in ("1", "true", "yes")
     SIMULATE_CONTROLLED_FAILURE: bool = os.getenv("SIMULATE_CONTROLLED_FAILURE", "false").lower() in ("1", "true", "yes")
 
-    # Storage Paths
-    STORAGE_DIR: Path = BASE_DIR / "storage"
-    REPORTS_DIR: Path = BASE_DIR / "storage" / "reports"
+    # Storage Paths (/tmp on Vercel)
+    STORAGE_DIR: Path = Path("/tmp/storage") if os.getenv("VERCEL") == "1" else (BASE_DIR / "storage")
+    REPORTS_DIR: Path = Path("/tmp/storage/reports") if os.getenv("VERCEL") == "1" else (BASE_DIR / "storage" / "reports")
 
     def has_gemini_key(self) -> bool:
         return bool(self.GEMINI_API_KEY and self.GEMINI_API_KEY.strip())
